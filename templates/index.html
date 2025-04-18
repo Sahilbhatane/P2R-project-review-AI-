@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}P2R - Upload Project{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Upload Your Project</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <p class="lead">
+                        P2R analyzes your code files and generates structured summaries to help you understand the project better.
+                    </p>
+                    <p>
+                        Choose one of the methods below to analyze your project:
+                    </p>
+                </div>
+
+                <ul class="nav nav-tabs" id="uploadTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="true">
+                            <i class="fas fa-file-upload"></i> Upload Files
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="github-tab" data-bs-toggle="tab" data-bs-target="#github" type="button" role="tab" aria-controls="github" aria-selected="false">
+                            <i class="fab fa-github"></i> GitHub Repository
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content mt-4" id="uploadTabsContent">
+                    <!-- File Upload Form -->
+                    <div class="tab-pane fade show active" id="files" role="tabpanel" aria-labelledby="files-tab">
+                        <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+                            <div class="mb-3">
+                                <label for="files" class="form-label">Select Files</label>
+                                <div class="upload-area p-5 text-center border rounded bg-light" id="upload-area">
+                                    <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                    <p>Drag & drop files here or click to browse</p>
+                                    <input type="file" name="files[]" id="file-input" class="form-control d-none" multiple>
+                                </div>
+                                <div id="file-list" class="mt-3"></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-analyze"></i> Analyze Files
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- GitHub Repository Form -->
+                    <div class="tab-pane fade" id="github" role="tabpanel" aria-labelledby="github-tab">
+                        <form action="/github" method="post">
+                            <div class="mb-3">
+                                <label for="repo_url" class="form-label">GitHub Repository URL</label>
+                                <input type="url" class="form-control" id="repo_url" name="repo_url" placeholder="https://github.com/username/repository" required>
+                                <div class="form-text">Enter the URL of a public GitHub repository</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fab fa-github"></i> Analyze Repository
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">How It Works</h3>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <i class="fas fa-upload fa-3x text-primary"></i>
+                        </div>
+                        <h5>1. Upload</h5>
+                        <p>Upload your project files or provide a GitHub repository URL</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <i class="fas fa-cogs fa-3x text-primary"></i>
+                        </div>
+                        <h5>2. Analyze</h5>
+                        <p>P2R automatically analyzes your code files</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <i class="fas fa-file-alt fa-3x text-primary"></i>
+                        </div>
+                        <h5>3. Review</h5>
+                        <p>Get structured summaries and a comprehensive project review</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+        
+        // Open file browser when clicking on the upload area
+        uploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        // Handle drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            uploadArea.classList.add('bg-light-blue');
+        }
+        
+        function unhighlight() {
+            uploadArea.classList.remove('bg-light-blue');
+        }
+        
+        // Handle dropped files
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            fileInput.files = files;
+            updateFileList(files);
+        }
+        
+        // Handle selected files
+        fileInput.addEventListener('change', function() {
+            updateFileList(this.files);
+        });
+        
+        function updateFileList(files) {
+            fileList.innerHTML = '';
+            
+            if (files.length > 0) {
+                const list = document.createElement('ul');
+                list.className = 'list-group';
+                
+                for (let i = 0; i < files.length; i++) {
+                    const item = document.createElement('li');
+                    item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    
+                    const fileName = document.createElement('span');
+                    fileName.textContent = files[i].name;
+                    
+                    const fileSize = document.createElement('span');
+                    fileSize.className = 'badge bg-primary rounded-pill';
+                    fileSize.textContent = formatFileSize(files[i].size);
+                    
+                    item.appendChild(fileName);
+                    item.appendChild(fileSize);
+                    list.appendChild(item);
+                }
+                
+                fileList.appendChild(list);
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block title %}P2R - Project Analysis Results{% endblock %}
+
+{% block head %}
+<style>
+    .file-list {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    .code-section {
+        font-family: 'Courier New', monospace;
+        white-space: pre-wrap;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    .element-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .type-badge {
+        width: 80px;
+        display: inline-block;
+        text-align: center;
+    }
+    .summary-box {
+        background-color: #e9f7ef;
+        border-left: 5px solid #27ae60;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Project Summary -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Project Summary</h3>
+            </div>
+            <div class="card-body">
+                <div class="summary-box">
+                    <p class="lead mb-0">{{ summary.text }}</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3>{{ summary.file_count }}</h3>
+                                <p class="text-muted">Files</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3>{{ summary.total_lines }}</h3>
+                                <p class="text-muted">Lines of Code</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3>{{ summary.class_count }}</h3>
+                                <p class="text-muted">Classes</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3>{{ summary.function_count }}</h3>
+                                <p class="text-muted">Functions</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h5>Languages</h5>
+                        <ul class="list-group">
+                            {% for lang, count in summary.languages.items() %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ lang }}
+                                <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Common Imports</h5>
+                        <ul class="list-group">
+                            {% for import_name, count in summary.common_imports %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ import_name }}
+                                <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- File Explorer & Details -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Files</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group file-list">
+                    {% for file in files %}
+                    <a href="#" class="list-group-item list-group-item-action file-item" data-file-path="{{ file.path }}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ file.path }}</h6>
+                            <small>{{ file.language }}</small>
+                        </div>
+                        <p class="mb-1 text-muted small">{{ file.summary }}</p>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card file-details d-none">
+            <div class="card-header">
+                <h4 class="card-title file-title">File Details</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="file-summary mb-4">
+                            <h5>Summary</h5>
+                            <p class="file-summary-text"></p>
+                        </div>
+                        
+                        <ul class="nav nav-tabs" id="fileTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="elements-tab" data-bs-toggle="tab" data-bs-target="#elements" type="button" role="tab" aria-controls="elements" aria-selected="true">
+                                    Elements
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="metrics-tab" data-bs-toggle="tab" data-bs-target="#metrics" type="button" role="tab" aria-controls="metrics" aria-selected="false">
+                                    Metrics
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="fileTabsContent">
+                            <div class="tab-pane fade show active" id="elements" role="tabpanel" aria-labelledby="elements-tab">
+                                <div class="element-list">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Name</th>
+                                                <th>Line</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="elements-table-body">
+                                            <!-- Will be populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Language
+                                                <span class="file-language badge bg-info"></span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Size
+                                                <span class="file-size badge bg-info"></span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Lines
+                                                <span class="file-lines badge bg-info"></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Comments
+                                                <span class="file-comments badge bg-info"></span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Comment Ratio
+                                                <span class="file-comment-ratio badge bg-info"></span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Elements
+                                                <span class="file-elements-count badge bg-info"></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // File data in JSON format
+        const files = {{ files|tojson }};
+        
+        // DOM elements
+        const fileItems = document.querySelectorAll('.file-item');
+        const fileDetails = document.querySelector('.file-details');
+        const fileTitle = document.querySelector('.file-title');
+        const fileSummaryText = document.querySelector('.file-summary-text');
+        const elementsTableBody = document.querySelector('.elements-table-body');
+        const fileLanguage = document.querySelector('.file-language');
+        const fileSize = document.querySelector('.file-size');
+        const fileLines = document.querySelector('.file-lines');
+        const fileComments = document.querySelector('.file-comments');
+        const fileCommentRatio = document.querySelector('.file-comment-ratio');
+        const fileElementsCount = document.querySelector('.file-elements-count');
+        
+        // Handle file click
+        fileItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all items
+                fileItems.forEach(i => i.classList.remove('active'));
+                
+                // Add active class to clicked item
+                this.classList.add('active');
+                
+                // Get file path
+                const filePath = this.getAttribute('data-file-path');
+                
+                // Find file data
+                const fileData = files.find(f => f.path === filePath);
+                
+                if (fileData) {
+                    // Show file details
+                    fileDetails.classList.remove('d-none');
+                    
+                    // Update file title
+                    fileTitle.textContent = fileData.path;
+                    
+                    // Update file summary
+                    fileSummaryText.textContent = fileData.summary;
+                    
+                    // Update elements table
+                    elementsTableBody.innerHTML = '';
+                    if (fileData.elements && fileData.elements.length > 0) {
+                        fileData.elements.forEach(element => {
+                            const row = document.createElement('tr');
+                            
+                            const typeCell = document.createElement('td');
+                            const typeSpan = document.createElement('span');
+                            typeSpan.className = `badge ${element.type}-badge element-badge`;
+                            typeSpan.textContent = element.type;
+                            typeCell.appendChild(typeSpan);
+                            
+                            const nameCell = document.createElement('td');
+                            nameCell.textContent = element.name;
+                            
+                            const lineCell = document.createElement('td');
+                            lineCell.textContent = element.line;
+                            
+                            row.appendChild(typeCell);
+                            row.appendChild(nameCell);
+                            row.appendChild(lineCell);
+                            
+                            elementsTableBody.appendChild(row);
+                        });
+                    } else {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 3;
+                        cell.textContent = 'No elements found';
+                        cell.className = 'text-center';
+                        row.appendChild(cell);
+                        elementsTableBody.appendChild(row);
+                    }
+                    
+                    // Update metrics
+                    fileLanguage.textContent = fileData.language || 'Unknown';
+                    fileSize.textContent = formatFileSize(fileData.size || 0);
+                    fileLines.textContent = fileData.line_count || 0;
+                    fileComments.textContent = fileData.comment_count || 0;
+                    fileCommentRatio.textContent = `${Math.round((fileData.comment_ratio || 0) * 100)}%`;
+                    fileElementsCount.textContent = (fileData.elements || []).length;
+                }
+            });
+        });
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Select the first file by default
+        if (fileItems.length > 0) {
+            fileItems[0].click();
+        }
+    });
+</script>
+{% endblock %} 

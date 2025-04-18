@@ -1,0 +1,103 @@
+/* Custom Styles for P2R */
+
+/* Upload area styling */
+.upload-area {
+    border: 2px dashed #ccc;
+    transition: border-color 0.3s;
+    position: relative;
+}
+
+.upload-area:hover {
+    border-color: #007bff;
+}
+
+.bg-light-blue {
+    background-color: #e6f3ff !important;
+    border-color: #007bff !important;
+}
+
+/* Element badges */
+.element-badge {
+    color: white;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.import-badge {
+    background-color: #007bff;
+}
+
+.class-badge {
+    background-color: #28a745;
+}
+
+.function-badge {
+    background-color: #fd7e14;
+}
+
+.method-badge {
+    background-color: #6f42c1;
+}
+
+.variable-badge {
+    background-color: #6c757d;
+}
+
+.component-badge {
+    background-color: #e83e8c;
+}
+
+.package-badge {
+    background-color: #17a2b8;
+}
+
+/* Summary box styling */
+.summary-box {
+    background-color: #e9f7ef;
+    border-left: 5px solid #27ae60;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+/* File list styling */
+.file-item {
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: #f0f0f0;
+}
+
+.file-item.active {
+    background-color: #e9ecef;
+    border-left: 4px solid #007bff;
+}
+
+/* Scrollable areas */
+.file-list, .element-list, .code-section {
+    scrollbar-width: thin;
+    scrollbar-color: #adb5bd #f8f9fa;
+}
+
+.file-list::-webkit-scrollbar, 
+.element-list::-webkit-scrollbar, 
+.code-section::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.file-list::-webkit-scrollbar-track, 
+.element-list::-webkit-scrollbar-track, 
+.code-section::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.file-list::-webkit-scrollbar-thumb, 
+.element-list::-webkit-scrollbar-thumb, 
+.code-section::-webkit-scrollbar-thumb {
+    background-color: #adb5bd;
+    border-radius: 4px;
+    border: 2px solid #f8f9fa;
+} 
