@@ -1,188 +1,769 @@
 {% extends 'base.html' %}
 
-{% block title %}P2R - Upload Project{% endblock %}
+{% block title %}P2R - Project Analysis Results{% endblock %}
+
+{% block head %}
+<style>
+    .file-list {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    .code-section {
+        font-family: 'Courier New', monospace;
+        white-space: pre-wrap;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    .element-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .type-badge {
+        width: 80px;
+        display: inline-block;
+        text-align: center;
+    }
+    .summary-box {
+        background-color: #e9f7ef;
+        border-left: 5px solid #27ae60;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    .quality-score {
+        font-size: 2.5rem;
+        font-weight: bold;
+    }
+    .quality-high {
+        color: #27ae60;
+    }
+    .quality-medium {
+        color: #f39c12;
+    }
+    .quality-low {
+        color: #e74c3c;
+    }
+    .badge-issue {
+        background-color: #f39c12;
+    }
+    .badge-security {
+        background-color: #e74c3c;
+    }
+    .badge-quality {
+        background-color: #27ae60;
+    }
+    .visualization-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .viz-tabs {
+        margin-bottom: 15px;
+    }
+    .qa-container {
+        margin-top: 20px;
+    }
+    .reference-item {
+        padding: 10px;
+        border-left: 3px solid #3498db;
+        margin-bottom: 10px;
+        background-color: #f8f9fa;
+    }
+    .recommendation-item {
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .recommendation-item.security {
+        background-color: #ffecea;
+        border-left: 5px solid #e74c3c;
+    }
+    .recommendation-item.quality {
+        background-color: #e9f7ef;
+        border-left: 5px solid #27ae60;
+    }
+    .recommendation-item.architecture {
+        background-color: #eafaf1;
+        border-left: 5px solid #2ecc71;
+    }
+    .recommendation-item.complexity {
+        background-color: #fef9e7;
+        border-left: 5px solid #f1c40f;
+    }
+    .recommendation-item.documentation {
+        background-color: #eaecee;
+        border-left: 5px solid #95a5a6;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
+<div class="row">
+    <!-- Project Summary -->
+    <div class="col-12">
+        <div class="card mb-4">
             <div class="card-header">
-                <h3 class="card-title">Upload Your Project</h3>
+                <h3 class="card-title">Project Summary</h3>
             </div>
             <div class="card-body">
-                <div class="mb-4">
-                    <p class="lead">
-                        P2R analyzes your code files and generates structured summaries to help you understand the project better.
-                    </p>
-                    <p>
-                        Choose one of the methods below to analyze your project:
-                    </p>
+                <div class="summary-box">
+                    <p class="lead mb-0">{{ summary.text }}</p>
                 </div>
-
-                <ul class="nav nav-tabs" id="uploadTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="true">
-                            <i class="fas fa-file-upload"></i> Upload Files
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="github-tab" data-bs-toggle="tab" data-bs-target="#github" type="button" role="tab" aria-controls="github" aria-selected="false">
-                            <i class="fab fa-github"></i> GitHub Repository
-                        </button>
-                    </li>
-                </ul>
-
-                <div class="tab-content mt-4" id="uploadTabsContent">
-                    <!-- File Upload Form -->
-                    <div class="tab-pane fade show active" id="files" role="tabpanel" aria-labelledby="files-tab">
-                        <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
-                            <div class="mb-3">
-                                <label for="files" class="form-label">Select Files</label>
-                                <div class="upload-area p-5 text-center border rounded bg-light" id="upload-area">
-                                    <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
-                                    <p>Drag & drop files here or click to browse</p>
-                                    <input type="file" name="files[]" id="file-input" class="form-control d-none" multiple>
-                                </div>
-                                <div id="file-list" class="mt-3"></div>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3>{{ summary.file_count }}</h3>
+                                <p class="text-muted">Files</p>
                             </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-analyze"></i> Analyze Files
-                            </button>
-                        </form>
+                        </div>
                     </div>
-
-                    <!-- GitHub Repository Form -->
-                    <div class="tab-pane fade" id="github" role="tabpanel" aria-labelledby="github-tab">
-                        <form action="/github" method="post">
-                            <div class="mb-3">
-                                <label for="repo_url" class="form-label">GitHub Repository URL</label>
-                                <input type="url" class="form-control" id="repo_url" name="repo_url" placeholder="https://github.com/username/repository" required>
-                                <div class="form-text">Enter the URL of a public GitHub repository</div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3>{{ summary.total_lines }}</h3>
+                                <p class="text-muted">Lines of Code</p>
                             </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fab fa-github"></i> Analyze Repository
-                            </button>
-                        </form>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3>{{ summary.class_count }}</h3>
+                                <p class="text-muted">Classes</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3>{{ summary.function_count }}</h3>
+                                <p class="text-muted">Functions</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <h5>Languages</h5>
+                        <ul class="list-group">
+                            {% for lang, count in summary.languages.items() %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ lang }}
+                                <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Common Imports</h5>
+                        <ul class="list-group">
+                            {% for import_name, count in summary.common_imports %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ import_name }}
+                                <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5>AI Quality Score</h5>
+                                <div class="quality-score {% if summary.ai_summary and summary.ai_summary.quality_score and summary.ai_summary.quality_score > 80 %}quality-high{% elif summary.ai_summary and summary.ai_summary.quality_score and summary.ai_summary.quality_score > 60 %}quality-medium{% else %}quality-low{% endif %}">
+                                    {{ summary.ai_summary.quality_score|default('N/A') }}
+                                </div>
+                                <p class="text-muted">out of 100</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="card">
+        
+        <!-- AI Insights -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h3 class="card-title">How It Works</h3>
+                <h3 class="card-title">AI Insights</h3>
             </div>
             <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <i class="fas fa-upload fa-3x text-primary"></i>
+                <ul class="nav nav-tabs" id="insightTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="code-quality-tab" data-bs-toggle="tab" data-bs-target="#code-quality" type="button" role="tab" aria-controls="code-quality" aria-selected="true">
+                            Code Quality
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="recommendations-tab" data-bs-toggle="tab" data-bs-target="#recommendations" type="button" role="tab" aria-controls="recommendations" aria-selected="false">
+                            Recommendations
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="architecture-tab" data-bs-toggle="tab" data-bs-target="#architecture" type="button" role="tab" aria-controls="architecture" aria-selected="false">
+                            Architecture
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="visualizations-tab" data-bs-toggle="tab" data-bs-target="#visualizations" type="button" role="tab" aria-controls="visualizations" aria-selected="false">
+                            Visualizations
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="qa-tab" data-bs-toggle="tab" data-bs-target="#qa" type="button" role="tab" aria-controls="qa" aria-selected="false">
+                            Ask Questions
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content p-3 border border-top-0 rounded-bottom">
+                    <!-- Code Quality Tab -->
+                    <div class="tab-pane fade show active" id="code-quality" role="tabpanel" aria-labelledby="code-quality-tab">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Quality Metrics</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                Documentation
+                                                <span class="badge {% if summary.full_review.code_quality.ratings.documentation == 'good' %}bg-success{% elif summary.full_review.code_quality.ratings.documentation == 'fair' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                    {{ summary.full_review.code_quality.ratings.documentation|capitalize }}
+                                                </span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                Complexity
+                                                <span class="badge {% if summary.full_review.code_quality.ratings.complexity == 'good' %}bg-success{% elif summary.full_review.code_quality.ratings.complexity == 'fair' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                    {{ summary.full_review.code_quality.ratings.complexity|capitalize }}
+                                                </span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                Overall Quality
+                                                <span class="badge {% if summary.full_review.code_quality.ratings.overall == 'good' %}bg-success{% elif summary.full_review.code_quality.ratings.overall == 'fair' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                    {{ summary.full_review.code_quality.ratings.overall|capitalize }}
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Code Smells</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if summary.ai_summary.code_smells %}
+                                        <ul class="list-group">
+                                            {% for smell, count in summary.ai_summary.code_smells.items() %}
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                {{ smell|replace('_', ' ')|capitalize }}
+                                                <span class="badge badge-issue">{{ count }}</span>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% else %}
+                                        <p class="text-muted">No code smells detected.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Security Issues</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if summary.ai_summary.security_issues %}
+                                        <ul class="list-group">
+                                            {% for issue, count in summary.ai_summary.security_issues.items() %}
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                {{ issue|replace('_', ' ')|capitalize }}
+                                                <span class="badge badge-security">{{ count }}</span>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% else %}
+                                        <p class="text-muted">No security issues detected.</p>
+                                        {% endif %}
+                                        <button id="run-security-scan" class="btn btn-danger btn-sm mt-3">
+                                            <i class="fas fa-shield-alt"></i> Run Deep Security Scan
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <h5>1. Upload</h5>
-                        <p>Upload your project files or provide a GitHub repository URL</p>
                     </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <i class="fas fa-cogs fa-3x text-primary"></i>
+                    
+                    <!-- Recommendations Tab -->
+                    <div class="tab-pane fade" id="recommendations" role="tabpanel" aria-labelledby="recommendations-tab">
+                        {% if summary.full_review.recommendations %}
+                        {% for rec in summary.full_review.recommendations %}
+                        <div class="recommendation-item {{ rec.type }}">
+                            <h5>
+                                <i class="fas {% if rec.type == 'security' %}fa-shield-alt{% elif rec.type == 'quality' %}fa-check-circle{% elif rec.type == 'architecture' %}fa-sitemap{% elif rec.type == 'complexity' %}fa-code-branch{% elif rec.type == 'documentation' %}fa-file-alt{% else %}fa-lightbulb{% endif %}"></i>
+                                {{ rec.type|capitalize }}
+                            </h5>
+                            <p class="mb-0">{{ rec.message }}</p>
                         </div>
-                        <h5>2. Analyze</h5>
-                        <p>P2R automatically analyzes your code files</p>
+                        {% endfor %}
+                        {% else %}
+                        <div class="alert alert-info">No recommendations available.</div>
+                        {% endif %}
                     </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <i class="fas fa-file-alt fa-3x text-primary"></i>
+                    
+                    <!-- Architecture Tab -->
+                    <div class="tab-pane fade" id="architecture" role="tabpanel" aria-labelledby="architecture-tab">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Components</h5>
+                                <ul class="list-group mb-4">
+                                    {% for component in summary.full_review.architecture.components[:10] %}
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>{{ component.name }}</strong>
+                                            <span class="badge bg-primary">{{ component.file_count }} files</span>
+                                        </div>
+                                        <small class="text-muted">Examples: {{ component.files|join(', ') }}</small>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Dependencies</h5>
+                                <ul class="list-group">
+                                    {% for dep in summary.full_review.architecture.dependencies[:10] %}
+                                    <li class="list-group-item">
+                                        {{ dep.source }} → {{ dep.target }}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         </div>
-                        <h5>3. Review</h5>
-                        <p>Get structured summaries and a comprehensive project review</p>
+                        {% if summary.similarity_analysis %}
+                        <h5 class="mt-4">Similar Code</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>File 1</th>
+                                        <th>File 2</th>
+                                        <th>Similarity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pair in summary.similarity_analysis %}
+                                    <tr>
+                                        <td>{{ pair.file1 }}</td>
+                                        <td>{{ pair.file2 }}</td>
+                                        <td>{{ pair.similarity * 100 }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Visualizations Tab -->
+                    <div class="tab-pane fade" id="visualizations" role="tabpanel" aria-labelledby="visualizations-tab">
+                        <div class="viz-tabs">
+                            <ul class="nav nav-pills" id="vizSubTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="dependency-tab" data-bs-toggle="pill" data-bs-target="#dependency" type="button" role="tab" aria-controls="dependency" aria-selected="true">Dependency Graph</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="class-tab" data-bs-toggle="pill" data-bs-target="#class" type="button" role="tab" aria-controls="class" aria-selected="false">Class Diagram</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="complexity-tab" data-bs-toggle="pill" data-bs-target="#complexity" type="button" role="tab" aria-controls="complexity" aria-selected="false">Complexity Chart</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="dependency" role="tabpanel" aria-labelledby="dependency-tab">
+                                <div class="visualization-container">
+                                    {% if summary.visualizations.dependency_graph %}
+                                    <img src="data:image/png;base64,{{ summary.visualizations.dependency_graph }}" alt="Dependency Graph" class="img-fluid">
+                                    {% else %}
+                                    <button class="btn btn-primary generate-viz" data-type="dependency_graph">Generate Dependency Graph</button>
+                                    <div class="viz-placeholder"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="class" role="tabpanel" aria-labelledby="class-tab">
+                                <div class="visualization-container">
+                                    {% if summary.visualizations.class_diagram %}
+                                    <img src="data:image/png;base64,{{ summary.visualizations.class_diagram }}" alt="Class Diagram" class="img-fluid">
+                                    {% else %}
+                                    <button class="btn btn-primary generate-viz" data-type="class_diagram">Generate Class Diagram</button>
+                                    <div class="viz-placeholder"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="complexity" role="tabpanel" aria-labelledby="complexity-tab">
+                                <div class="visualization-container">
+                                    {% if summary.visualizations.complexity_chart %}
+                                    <img src="data:image/png;base64,{{ summary.visualizations.complexity_chart }}" alt="Complexity Chart" class="img-fluid">
+                                    {% else %}
+                                    <button class="btn btn-primary generate-viz" data-type="complexity_chart">Generate Complexity Chart</button>
+                                    <div class="viz-placeholder"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- QA Tab -->
+                    <div class="tab-pane fade" id="qa" role="tabpanel" aria-labelledby="qa-tab">
+                        <div class="qa-container">
+                            <div class="mb-3">
+                                <label for="code-question" class="form-label">Ask a question about this code:</label>
+                                <input type="text" class="form-control" id="code-question" placeholder="e.g., What does the function X do? or How is Y implemented?">
+                                <div class="form-text">Ask questions about specific files, functions, or how things work in the codebase.</div>
+                            </div>
+                            <button class="btn btn-primary" id="ask-question-btn">Ask Question</button>
+                            
+                            <div class="mt-4" id="answer-container" style="display: none;">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Answer</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p id="answer-text"></p>
+                                        <div id="references-container">
+                                            <h6>References:</h6>
+                                            <div id="references-list"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- File Explorer & Details -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Files</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group file-list">
+                    {% for file in files %}
+                    <a href="#" class="list-group-item list-group-item-action file-item" data-file-path="{{ file.path }}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ file.path }}</h6>
+                            <small>{{ file.language }}</small>
+                        </div>
+                        <p class="mb-1 text-muted small">{{ file.summary }}</p>
+                        {% if file.ai_insights and file.ai_insights.quality_score %}
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="badge {% if file.ai_insights.quality_score > 80 %}bg-success{% elif file.ai_insights.quality_score > 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                                Quality: {{ file.ai_insights.quality_score }}
+                            </span>
+                            {% if file.ai_insights.code_smells|length > 0 or file.ai_insights.security_issues|length > 0 %}
+                            <span>
+                                {% if file.ai_insights.code_smells|length > 0 %}
+                                <span class="badge badge-issue">{{ file.ai_insights.code_smells|length }} issue{% if file.ai_insights.code_smells|length > 1 %}s{% endif %}</span>
+                                {% endif %}
+                                {% if file.ai_insights.security_issues|length > 0 %}
+                                <span class="badge badge-security">{{ file.ai_insights.security_issues|length }} security</span>
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card file-details d-none">
+            <div class="card-header">
+                <h4 class="card-title file-title">File Details</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="file-summary mb-4">
+                            <h5>Summary</h5>
+                            <p class="file-summary-text"></p>
+                        </div>
+                        
+                        <ul class="nav nav-tabs" id="fileTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="elements-tab" data-bs-toggle="tab" data-bs-target="#elements" type="button" role="tab" aria-controls="elements" aria-selected="true">
+                                    Elements
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="metrics-tab" data-bs-toggle="tab" data-bs-target="#metrics" type="button" role="tab" aria-controls="metrics" aria-selected="false">
+                                    Metrics
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="ai-insights-tab" data-bs-toggle="tab" data-bs-target="#ai-insights" type="button" role="tab" aria-controls="ai-insights" aria-selected="false">
+                                    AI Insights
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="fileTabsContent">
+                            <div class="tab-pane fade show active" id="elements" role="tabpanel" aria-labelledby="elements-tab">
+                                <div class="element-list">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Name</th>
+                                                <th>Line</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="elements-table-body">
+                                            <!-- Will be populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Language
+                                                <span class="file-language badge bg-info"></span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Size
+                                                <span class="file-size badge bg-info"></span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Lines
+                                                <span class="file-lines badge bg-info"></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Comments
+                                                <span class="file-comments badge bg-info"></span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Comment Ratio
+                                                <span class="file-comment-ratio badge bg-info"></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- AI Insights Tab -->
+                            <div class="tab-pane fade" id="ai-insights" role="tabpanel" aria-labelledby="ai-insights-tab">
+                                <div class="row mb-3">
+                                    <div class="col-md-5">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <h5>Quality Score</h5>
+                                                <div class="file-quality-score quality-score"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5>Complexity</h5>
+                                                <ul class="list-group">
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        Cyclomatic Complexity
+                                                        <span class="file-complexity-cyclomatic badge bg-info"></span>
+                                                    </li>
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        Max Nested Depth
+                                                        <span class="file-complexity-depth badge bg-info"></span>
+                                                    </li>
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        Rating
+                                                        <span class="file-complexity-rating badge"></span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5>Key Concepts</h5>
+                                        <div class="file-concepts"></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5>Improvements</h5>
+                                        <div class="file-improvements"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5>Code Smells</h5>
+                                            <div class="file-code-smells"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h5>Security Issues</h5>
+                                            <div class="file-security-issues"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
+<!-- Add to the "How It Works" section -->
+<div class="row text-center">
+    <div class="col-md-3">
+        <div class="mb-3">
+            <i class="fas fa-upload fa-3x text-primary"></i>
+        </div>
+        <h5>1. Upload</h5>
+        <p>Upload your project files or provide a GitHub repository URL</p>
+    </div>
+    <div class="col-md-3">
+        <div class="mb-3">
+            <i class="fas fa-cogs fa-3x text-primary"></i>
+        </div>
+        <h5>2. Analyze</h5>
+        <p>P2R automatically analyzes your code files with AI-powered insights</p>
+    </div>
+    <div class="col-md-3">
+        <div class="mb-3">
+            <i class="fas fa-file-alt fa-3x text-primary"></i>
+        </div>
+        <h5>3. Review</h5>
+        <p>Get structured summaries and a comprehensive project review</p>
+    </div>
+    <div class="col-md-3">
+        <div class="mb-3">
+            <i class="fas fa-robot fa-3x text-primary"></i>
+        </div>
+        <h5>4. Interact</h5>
+        <p>Ask questions about the code and get AI-powered explanations</p>
+    </div>
+</div>
+
+<!-- Add a new card below the existing ones -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">New AI-Powered Features</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                        <h5>Code Quality Metrics</h5>
+                        <p>AI-driven analysis of code quality, complexity, and potential issues</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-body text-center">
+                        <i class="fas fa-question-circle fa-3x text-primary mb-3"></i>
+                        <h5>Interactive Code Q&A</h5>
+                        <p>Ask questions about the code and get intelligent explanations</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-body text-center">
+                        <i class="fas fa-project-diagram fa-3x text-primary mb-3"></i>
+                        <h5>Architecture Visualization</h5>
+                        <p>Generate dependency graphs and class diagrams automatically</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not files or files|length == 0 %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">Analyze Your Code</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Upload Files</h5>
+                <form action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="files" class="form-label">Select files to analyze</label>
+                        <input type="file" class="form-control" id="files" name="files[]" multiple>
+                        <div class="form-text">Select multiple files or a zip archive of your project</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload & Analyze</button>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <h5>GitHub Repository</h5>
+                <form action="/github" method="post">
+                    <div class="mb-3">
+                        <label for="repo_url" class="form-label">GitHub Repository URL</label>
+                        <input type="text" class="form-control" id="repo_url" name="repo_url" placeholder="https://github.com/username/repository">
+                        <div class="form-text">Enter the URL of a public GitHub repository</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Analyze Repository</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const uploadArea = document.getElementById('upload-area');
-        const fileInput = document.getElementById('file-input');
-        const fileList = document.getElementById('file-list');
+        const sessionId = window.location.pathname.split('/').pop();
         
-        // Open file browser when clicking on the upload area
-        uploadArea.addEventListener('click', function() {
-            fileInput.click();
-        });
-        
-        // Handle drag and drop events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, highlight, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, unhighlight, false);
-        });
-        
-        function highlight() {
-            uploadArea.classList.add('bg-light-blue');
-        }
-        
-        function unhighlight() {
-            uploadArea.classList.remove('bg-light-blue');
-        }
-        
-        // Handle dropped files
-        uploadArea.addEventListener('drop', handleDrop, false);
-        
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            
-            fileInput.files = files;
-            updateFileList(files);
-        }
-        
-        // Handle selected files
-        fileInput.addEventListener('change', function() {
-            updateFileList(this.files);
-        });
-        
-        function updateFileList(files) {
-            fileList.innerHTML = '';
-            
-            if (files.length > 0) {
-                const list = document.createElement('ul');
-                list.className = 'list-group';
+        // File details handling
+        document.querySelectorAll('.file-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
                 
-                for (let i = 0; i < files.length; i++) {
-                    const item = document.createElement('li');
-                    item.className = 'list-group-item d-flex justify-content-between align-items-center';
-                    
-                    const fileName = document.createElement('span');
-                    fileName.textContent = files[i].name;
-                    
-                    const fileSize = document.createElement('span');
-                    fileSize.className = 'badge bg-primary rounded-pill';
-                    fileSize.textContent = formatFileSize(files[i].size);
-                    
-                    item.appendChild(fileName);
-                    item.appendChild(fileSize);
-                    list.appendChild(item);
-                }
+                const filePath = this.dataset.filePath;
+                document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
                 
-                fileList.appendChild(list);
-            }
-        }
+                // Fetch file details
+                fetch(`/api/file/${sessionId}/${filePath}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("File details:", data);  // Debug log
+                        displayFileDetails(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching file details:', error);
+                    });
+            });
+        });
         
+        // Format file size
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             
@@ -192,6 +773,377 @@
             
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
+        
+        // Question and Answer functionality
+        const questionInput = document.getElementById('code-question');
+        const askButton = document.getElementById('ask-question-btn');
+        const answerContainer = document.getElementById('answer-container');
+        const answerText = document.getElementById('answer-text');
+        const referencesList = document.getElementById('references-list');
+        
+        askButton.addEventListener('click', function() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+            
+            // Show loading state
+            askButton.disabled = true;
+            askButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+            
+            // Make API request
+            fetch(`/api/ask_question/${sessionId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: question })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the answer
+                answerText.textContent = data.answer || 'I couldn\'t find an answer to that question.';
+                
+                // Display references if available
+                referencesList.innerHTML = '';
+                if (data.references && data.references.length > 0) {
+                    data.references.forEach(ref => {
+                        const referenceDiv = document.createElement('div');
+                        referenceDiv.classList.add('reference-item');
+                        
+                        const header = document.createElement('div');
+                        header.innerHTML = `<strong>${ref.file}</strong> (Line ${ref.line})`;
+                        
+                        const context = document.createElement('pre');
+                        context.classList.add('mt-2', 'p-2', 'bg-light', 'rounded');
+                        context.textContent = ref.context || '';
+                        
+                        referenceDiv.appendChild(header);
+                        referenceDiv.appendChild(context);
+                        referencesList.appendChild(referenceDiv);
+                    });
+                    
+                    document.getElementById('references-container').style.display = 'block';
+                } else {
+                    document.getElementById('references-container').style.display = 'none';
+                }
+                
+                // Show the answer container
+                answerContainer.style.display = 'block';
+                
+                // Reset button state
+                askButton.disabled = false;
+                askButton.textContent = 'Ask Question';
+            })
+            .catch(error => {
+                console.error('Error asking question:', error);
+                answerText.textContent = 'An error occurred while processing your question.';
+                answerContainer.style.display = 'block';
+                document.getElementById('references-container').style.display = 'none';
+                
+                // Reset button state
+                askButton.disabled = false;
+                askButton.textContent = 'Ask Question';
+            });
+        });
+        
+        // Allow pressing Enter to submit question
+        questionInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                askButton.click();
+            }
+        });
+        
+        // Visualization generation
+        document.querySelectorAll('.generate-viz').forEach(button => {
+            button.addEventListener('click', function() {
+                const vizType = this.dataset.type;
+                const placeholder = this.nextElementSibling;
+                
+                // Show loading state
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
+                placeholder.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"></div><p class="mt-2">Generating visualization...</p></div>';
+                
+                // Make API request
+                fetch(`/api/generate_visualization/${sessionId}/${vizType}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.image_data) {
+                            placeholder.innerHTML = `<img src="data:image/png;base64,${data.image_data}" alt="${vizType}" class="img-fluid">`;
+                        } else {
+                            placeholder.innerHTML = '<div class="alert alert-warning">Could not generate visualization.</div>';
+                        }
+                        
+                        // Hide the button
+                        button.style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error(`Error generating ${vizType}:`, error);
+                        placeholder.innerHTML = '<div class="alert alert-danger">An error occurred while generating the visualization.</div>';
+                        
+                        // Reset button state
+                        button.disabled = false;
+                        button.innerHTML = `Generate ${vizType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+                    });
+            });
+        });
+        
+        // Security scan functionality
+        const securityScanButton = document.getElementById('run-security-scan');
+        if (securityScanButton) {
+            securityScanButton.addEventListener('click', function() {
+                // Show loading state
+                securityScanButton.disabled = true;
+                securityScanButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Scanning...';
+                
+                // Make API request
+                fetch(`/api/security_scan/${sessionId}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Create result display
+                    const container = securityScanButton.closest('.card-body');
+                    const resultDiv = document.createElement('div');
+                    resultDiv.classList.add('mt-3');
+                    
+                    if (data.security_issues && data.security_issues.length > 0) {
+                        resultDiv.innerHTML = `<h6>Found ${data.security_issues.length} security issues:</h6>`;
+                        
+                        const list = document.createElement('ul');
+                        list.classList.add('list-group');
+                        
+                        data.security_issues.forEach(issue => {
+                            const item = document.createElement('li');
+                            item.classList.add('list-group-item', 'list-group-item-danger');
+                            item.innerHTML = `<strong>${issue.file}:${issue.line}</strong>: ${issue.issue_type} (${issue.severity} severity)`;
+                            list.appendChild(item);
+                        });
+                        
+                        resultDiv.appendChild(list);
+                    } else {
+                        resultDiv.innerHTML = '<div class="alert alert-success">No security issues found in the deep scan.</div>';
+                    }
+                    
+                    container.appendChild(resultDiv);
+                    
+                    // Reset button state
+                    securityScanButton.disabled = false;
+                    securityScanButton.textContent = 'Run Deep Security Scan';
+                })
+                .catch(error => {
+                    console.error('Error running security scan:', error);
+                    
+                    const container = securityScanButton.closest('.card-body');
+                    const errorDiv = document.createElement('div');
+                    errorDiv.classList.add('mt-3', 'alert', 'alert-danger');
+                    errorDiv.textContent = 'An error occurred while running the security scan.';
+                    container.appendChild(errorDiv);
+                    
+                    // Reset button state
+                    securityScanButton.disabled = false;
+                    securityScanButton.textContent = 'Run Deep Security Scan';
+                });
+            });
+        }
     });
+
+    function displayFileDetails(data) {
+        // Show the file details card
+        const fileDetails = document.querySelector('.file-details');
+        fileDetails.classList.remove('d-none');
+        
+        // Update title and summary
+        document.querySelector('.file-title').textContent = data.path;
+        document.querySelector('.file-summary-text').textContent = data.summary || 'No summary available';
+        
+        // Update metrics
+        document.querySelector('.file-language').textContent = data.language || 'Unknown';
+        document.querySelector('.file-size').textContent = formatFileSize(data.size || 0);
+        document.querySelector('.file-lines').textContent = data.line_count || '0';
+        document.querySelector('.file-comments').textContent = data.comment_count || '0';
+        document.querySelector('.file-comment-ratio').textContent = ((data.comment_ratio || 0) * 100).toFixed(1) + '%';
+        
+        // Handle elements table
+        updateElementsTable(data.elements || []);
+        
+        // Handle code smells specifically
+        updateCodeSmells(data);
+        
+        // Handle security issues
+        updateSecurityIssues(data);
+        
+        // Handle improvement suggestions
+        updateImprovements(data);
+    }
+
+    function updateCodeSmells(data) {
+        const smellsContainer = document.querySelector('.file-code-smells');
+        if (!smellsContainer) return;  // Exit if container not found
+        
+        smellsContainer.innerHTML = '';
+        
+        // Make sure we safely access nested properties
+        const ai_insights = data.ai_insights || {};
+        const code_smells = ai_insights.code_smells || [];
+        
+        console.log("Code smells:", code_smells);  // Debug log
+        
+        if (code_smells && code_smells.length > 0) {
+            const list = document.createElement('ul');
+            list.classList.add('list-group');
+            
+            code_smells.forEach(smell => {
+                const item = document.createElement('li');
+                item.classList.add('list-group-item');
+                
+                const severity = smell.severity === 'high' ? 
+                    '<span class="badge bg-danger me-2">High</span>' : 
+                    (smell.severity === 'medium' ? 
+                     '<span class="badge bg-warning me-2">Medium</span>' : 
+                     '<span class="badge bg-info me-2">Low</span>');
+                
+                // Make sure we safely access the type property
+                const type = smell.type || 'Issue';
+                const message = smell.message || 'No description available';
+                
+                item.innerHTML = `${severity} <strong>${type}</strong>: ${message}`;
+                if (smell.line) {
+                    item.innerHTML += ` (Line ${smell.line})`;
+                }
+                
+                list.appendChild(item);
+            });
+            
+            smellsContainer.appendChild(list);
+        } else {
+            smellsContainer.innerHTML = '<p class="text-muted">No code smells detected.</p>';
+        }
+    }
+
+    function updateSecurityIssues(data) {
+        const securityContainer = document.querySelector('.file-security-issues');
+        if (!securityContainer) return;
+        
+        securityContainer.innerHTML = '';
+        
+        const ai_insights = data.ai_insights || {};
+        const security_issues = ai_insights.security_issues || [];
+        
+        if (security_issues && security_issues.length > 0) {
+            const list = document.createElement('ul');
+            list.classList.add('list-group');
+            
+            security_issues.forEach(issue => {
+                const item = document.createElement('li');
+                item.classList.add('list-group-item', 'list-group-item-danger');
+                
+                const type = issue.type || 'Security Issue';
+                const message = issue.message || 'No description available';
+                
+                item.innerHTML = `<strong>${type}</strong>: ${message}`;
+                if (issue.line) {
+                    item.innerHTML += ` (Line ${issue.line})`;
+                }
+                
+                list.appendChild(item);
+            });
+            
+            securityContainer.appendChild(list);
+        } else {
+            securityContainer.innerHTML = '<p class="text-muted">No security issues detected.</p>';
+        }
+    }
+
+    function updateImprovements(data) {
+        const improvementsContainer = document.querySelector('.file-improvements');
+        if (!improvementsContainer) return;
+        
+        improvementsContainer.innerHTML = '';
+        
+        const ai_insights = data.ai_insights || {};
+        const suggestions = ai_insights.improvement_suggestions || [];
+        
+        if (suggestions && suggestions.length > 0) {
+            const list = document.createElement('ul');
+            list.classList.add('list-group');
+            
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('li');
+                item.classList.add('list-group-item');
+                
+                const priority = suggestion.priority === 'high' ? 
+                    '<span class="badge bg-danger me-2">High</span>' : 
+                    (suggestion.priority === 'medium' ? 
+                     '<span class="badge bg-warning me-2">Medium</span>' : 
+                     '<span class="badge bg-info me-2">Low</span>');
+                
+                const message = suggestion.message || 'No description available';
+                
+                item.innerHTML = `${priority} ${message}`;
+                if (suggestion.line) {
+                    item.innerHTML += ` (Line ${suggestion.line})`;
+                }
+                
+                list.appendChild(item);
+            });
+            
+            improvementsContainer.appendChild(list);
+        } else {
+            improvementsContainer.innerHTML = '<p class="text-muted">No improvement suggestions.</p>';
+        }
+    }
+
+    function updateElementsTable(elements) {
+        const elementsTableBody = document.querySelector('.elements-table-body');
+        if (!elementsTableBody) return;
+        
+        elementsTableBody.innerHTML = '';
+        
+        if (elements && elements.length > 0) {
+            elements.forEach(element => {
+                const row = document.createElement('tr');
+                
+                const typeCell = document.createElement('td');
+                const typeBadge = document.createElement('span');
+                typeBadge.classList.add('type-badge', 'badge');
+                
+                // Set badge color based on type
+                if (element.type === 'class') {
+                    typeBadge.classList.add('bg-primary');
+                } else if (element.type === 'function') {
+                    typeBadge.classList.add('bg-success');
+                } else if (element.type === 'import') {
+                    typeBadge.classList.add('bg-info');
+                } else if (element.type === 'variable') {
+                    typeBadge.classList.add('bg-warning');
+                } else {
+                    typeBadge.classList.add('bg-secondary');
+                }
+                
+                typeBadge.textContent = element.type;
+                typeCell.appendChild(typeBadge);
+                
+                const nameCell = document.createElement('td');
+                nameCell.textContent = element.name;
+                
+                const lineCell = document.createElement('td');
+                lineCell.textContent = element.line || '-';
+                
+                row.appendChild(typeCell);
+                row.appendChild(nameCell);
+                row.appendChild(lineCell);
+                
+                elementsTableBody.appendChild(row);
+            });
+        } else {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 3;
+            cell.textContent = 'No elements found';
+            cell.classList.add('text-center', 'text-muted');
+            row.appendChild(cell);
+            elementsTableBody.appendChild(row);
+        }
+    }
 </script>
-{% endblock %} 
+{% endblock %}
