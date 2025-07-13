@@ -12,6 +12,8 @@ from src.utils.file_utils import is_code_file, read_file_content
 from src.ai_analyzer.integration import AIIntegrator
 import collections
 from src.ai_analyzer.code_qa import CodeQA
+import difflib
+import requests
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -24,6 +26,11 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize analyzers
 code_analyzer = CodeAnalyzer()
 ai_integrator = AIIntegrator(code_analyzer)
+
+def allowed_file(filename):
+    """Check if the file type is allowed"""
+    ALLOWED_EXTENSIONS = {'py', 'js', 'java', 'cpp', 'c', 'h', 'hpp', 'cs', 'php', 'rb', 'go', 'rs', 'ts', 'swift'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def index():
@@ -76,12 +83,46 @@ def upload_files():
     os.makedirs(project_dir, exist_ok=True)
     
     uploaded_files = []
+    total_size = 0
+    MAX_FILES = 100  # Maximum number of files
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB per file
+    
     for file in files:
+        if len(uploaded_files) >= MAX_FILES:
+            flash('Maximum number of files exceeded')
+            break
+            
         if file and file.filename:
+            if not allowed_file(file.filename):
+                continue  # Skip files with unsupported extensions
+                
             filename = secure_filename(file.filename)
             file_path = os.path.join(project_dir, filename)
-            file.save(file_path)
-            uploaded_files.append(file_path)
+            
+            # Check file size
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
+            
+            if file_size > MAX_FILE_SIZE:
+                flash(f'File {filename} exceeds maximum size limit')
+                continue
+                
+            total_size += file_size
+            if total_size > app.config['MAX_CONTENT_LENGTH']:
+                flash('Total upload size limit exceeded')
+                break
+                
+            try:
+                file.save(file_path)
+                uploaded_files.append(file_path)
+            except Exception as e:
+                flash(f'Error saving file {filename}: {str(e)}')
+                continue
+    
+    if not uploaded_files:
+        flash('No valid files were uploaded')
+        return redirect(url_for('index'))
     
     return analyze_project(project_dir)
 
@@ -103,6 +144,52 @@ def github_repo():
         flash(f'Error cloning repository: {str(e)}')
         return redirect(url_for('index'))
 
+def scan_for_plagiarism(project_dir):
+    """
+    Scan project files for plagiarism by comparing with known marketplaces and public code sources.
+    Returns a dict with results for each file.
+    """
+    plagiarism_results = {}
+    marketplaces = [
+        {
+            'name': 'Codester',
+            'search_url': 'https://www.codester.com/scripts/search.php?q={query}'
+        },
+        {
+            'name': 'CodeCanyon',
+            'search_url': 'https://codecanyon.net/search/{query}'
+        },
+        # Add more marketplaces as needed
+    ]
+    for root, _, files in os.walk(project_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            if is_code_file(file_path):
+                content = read_file_content(file_path)
+                # Use first 10 lines as a search query
+                query = ' '.join(content.splitlines()[:10])
+                found = False
+                source = None
+                percent_copied = 0
+                for market in marketplaces:
+                    try:
+                        search_url = market['search_url'].replace('{query}', requests.utils.quote(query))
+                        resp = requests.get(search_url, timeout=5)
+                        if resp.status_code == 200 and query.lower() in resp.text.lower():
+                            found = True
+                            source = market['name']
+                            # Estimate percent copied using difflib
+                            percent_copied = int(difflib.SequenceMatcher(None, resp.text, content).ratio() * 100)
+                            break
+                    except Exception:
+                        continue
+                plagiarism_results[file_path] = {
+                    'found': found,
+                    'source': source,
+                    'percent_copied': percent_copied
+                }
+    return plagiarism_results
+
 def analyze_project(project_dir):
     # Collect files
     all_files = []
@@ -121,9 +208,10 @@ def analyze_project(project_dir):
     for file_info in all_files:
         file_content = read_file_content(file_info['full_path'])
         if file_content:
-            # Use the AI integrator to get enhanced analysis including Gemini
             analysis = ai_integrator.analyze_file(file_info['path'], file_content)
             analysis_results.append(analysis)
+    # Plagiarism scan
+    plagiarism_report = scan_for_plagiarism(project_dir)
     
     # Generate project summary
     basic_summary = code_analyzer.generate_project_summary(analysis_results)
@@ -164,7 +252,8 @@ def analyze_project(project_dir):
             'dependency_graph': None,
             'class_diagram': None,
             'complexity_chart': None
-        }
+        },
+        'plagiarism': plagiarism_report,
     }
     
     # Store results in session or temporary file
@@ -173,7 +262,7 @@ def analyze_project(project_dir):
     with open(result_path, 'w') as f:
         json.dump({
             'files': analysis_results,
-            'summary': project_summary  # Make sure this key exists!
+            'summary': project_summary
         }, f)
     
     return redirect(url_for('results', session_id=session_id))
@@ -280,10 +369,11 @@ def results(session_id):
         if 'metrics' not in summary['full_review']['code_quality']:
             summary['full_review']['code_quality']['metrics'] = {'security_issues': 0}
         
+        plagiarism_report = analysis_data['summary'].get('plagiarism', {})
         return render_template('index.html', 
-                            files=analysis_data['files'],
-                            summary=analysis_data['summary'])
-                              
+                              files=analysis_data['files'],
+                              summary=analysis_data['summary'],
+                              plagiarism=plagiarism_report)
     except Exception as e:
         import traceback
         print("Error in results route:", str(e))
@@ -434,5 +524,26 @@ def too_large(e):
     flash('File too large. Maximum size is 100MB.')
     return redirect(url_for('index'))
 
+def cleanup_old_files():
+    """Clean up files older than 24 hours in the upload folder"""
+    current_time = time.time()
+    max_age = 24 * 60 * 60  # 24 hours in seconds
+    
+    for item in os.listdir(app.config['UPLOAD_FOLDER']):
+        item_path = os.path.join(app.config['UPLOAD_FOLDER'], item)
+        if os.path.getctime(item_path) < (current_time - max_age):
+            try:
+                if os.path.isfile(item_path):
+                    os.remove(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+            except Exception as e:
+                print(f"Error cleaning up {item_path}: {str(e)}")
+
+@app.before_request
+def before_request():
+    """Run cleanup before each request"""
+    cleanup_old_files()
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000) 
+    app.run(debug=True, port=5000)

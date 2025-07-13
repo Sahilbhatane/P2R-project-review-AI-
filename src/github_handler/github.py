@@ -15,16 +15,20 @@ class GitHubRepo:
         self.project_dir = project_dir
         
         # Extract owner and repo name from URL
-        url_pattern = r'github\.com[:/]([^/]+)/([^/]+)'
-        match = re.search(url_pattern, repo_url)
+        # Support both HTTPS and SSH URLs
+        https_pattern = r'github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$'
+        ssh_pattern = r'git@github\.com:([^/]+)/([^/]+?)(?:\.git)?$'
+        
+        https_match = re.search(https_pattern, repo_url)
+        ssh_match = re.search(ssh_pattern, repo_url)
+        
+        match = https_match or ssh_match
         
         if match:
             self.owner = match.group(1)
             self.repo = match.group(2)
-            # Remove .git extension if present
-            self.repo = self.repo.replace('.git', '')
         else:
-            raise ValueError("Invalid GitHub repository URL")
+            raise ValueError("Invalid GitHub repository URL. Please provide a valid HTTPS or SSH URL.")
     
     def clone_repo(self):
         """
@@ -83,4 +87,4 @@ class GitHubRepo:
         # Clean up
         os.remove(temp_zip)
         
-        return True 
+        return True
